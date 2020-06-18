@@ -35,8 +35,20 @@ class HoChanicDB:
         await self.db.execute(f'CREATE TABLE {table_name}({column_sets})')
         await self.db.commit()
 
+    async def get_table(self, table_name):
+        cursor = await self.db.execute(f'SELECT * FROM {table_name}')
+        rows = await cursor.fetchall()
+        await cursor.close()
+        return rows
 
-if __name__ == "__main__":
-    column_sets = set_column("TEXT", token="gulag")
-    db = HoChanicDB("bot_db.db")
-    loop.run_until_complete(db.create_table("settings", column_sets))
+    async def get_from_table(self, table_name, where, where_val):
+        cursor = await self.db.execute(f'SELECT * FROM {table_name} WHERE {where}="{where_val}"')
+        rows = await cursor.fetchall()
+        await cursor.close()
+        return rows
+
+    async def insert_table(self, table_name, **kwargs):
+        fields = ', '.join(kwargs.keys())
+        values = '", "'.join(kwargs.values())
+        await self.db.execute(f'INSERT INTO {table_name}({fields}) VALUES ("{values}")')
+        await self.db.commit()
