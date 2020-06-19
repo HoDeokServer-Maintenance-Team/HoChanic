@@ -30,7 +30,8 @@ class HoChanicDB:
     async def close_db(self):
         await self.db.close()
 
-    async def create_table(self, table_name, column_sets):
+    async def create_table(self, table_name, store_type, **kwargs):
+        column_sets = set_column(store_type, **kwargs)
         await self.db.execute(f'DROP TABLE IF EXISTS {table_name}')
         await self.db.execute(f'CREATE TABLE {table_name}({column_sets})')
         await self.db.commit()
@@ -41,14 +42,28 @@ class HoChanicDB:
         await cursor.close()
         return rows
 
-    async def get_from_table(self, table_name, where, where_val):
-        cursor = await self.db.execute(f'SELECT * FROM {table_name} WHERE {where}="{where_val}"')
+    async def get_from_table(self, table_name, where, where_val, is_int=False):
+        if not is_int:
+            where_val = '"' + where_val + '"'
+        cursor = await self.db.execute(f'SELECT * FROM {table_name} WHERE {where}={where_val}')
         rows = await cursor.fetchall()
         await cursor.close()
         return rows
 
-    async def insert_table(self, table_name, **kwargs):
-        fields = ', '.join(kwargs.keys())
-        values = '", "'.join(kwargs.values())
-        await self.db.execute(f'INSERT INTO {table_name}({fields}) VALUES ("{values}")')
+    async def insert_table(self, table_name, is_int=False, **kwargs):
+        if is_int:
+            fields = ', '.join(kwargs.keys())
+            values = ', '.join(kwargs.values())
+            await self.db.execute(f'INSERT INTO {table_name}({fields}) VALUES ({values})')
+        else:
+            fields = ', '.join(kwargs.keys())
+            values = '", "'.join(kwargs.values())
+            await self.db.execute(f'INSERT INTO {table_name}({fields}) VALUES ("{values}")')
+        await self.db.commit()
+
+    async def update_db(self, table_name, field, value, where, where_val, is_int=False):
+        if not is_int:
+            value = '"' + value + '"'
+            where_val = '"' + where_val + '"'
+        await self.db.execute(f"UPDATE {table_name} SET {field}={value} WHERE {where}={where_val}")
         await self.db.commit()
