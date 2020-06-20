@@ -3,6 +3,7 @@ import asyncio
 import nest_asyncio
 from discord.ext import commands
 from modules import bot_db
+
 nest_asyncio.apply()
 
 bot = commands.Bot(command_prefix="!")
@@ -13,7 +14,13 @@ hochanic_db = bot_db.HoChanicDB("database.db")
 @bot.event
 async def on_ready():
     print("Bot Ready.")
-    await hochanic_db.create_table("daily", "INTEGER", id=False, count="0")
+    await hochanic_db.run_sql(f'DROP TABLE IF EXISTS daily')
+    await hochanic_db.run_sql("""CREATE TABLE "daily" (
+    "id"    INTEGER NOT NULL,
+    "count"    INTEGER NOT NULL DEFAULT 0,
+    "text_channel"    INTEGER NOT NULL,
+    PRIMARY KEY("id")
+)""")
 
 
 @bot.command(name="확인")
@@ -45,6 +52,33 @@ async def _add_new_screenshot_channel(ctx, channel: discord.TextChannel):
     await ctx.send(f"{channel.mention} 추가 완료")
 
 
+@bot.command(name="업보트")
+async def _rank(ctx):
+    res = await hochanic_db.res_sql("SELECT * FROM daily ORDER BY count DESC")
+    embed = discord.Embed(title="업보트", color=discord.Colour.from_rgb(225, 225, 225))
+    embed.set_footer(text=ctx.author, icon_url=ctx.author.avatar_url)
+    lvl = 1
+    count = 0
+    for y in res:
+        if y[1] == 0:
+            continue
+        try:
+            msg = await (ctx.guild.get_channel(int(y[2]))).fetch_message(int(y[0]))
+            if msg is None:
+                continue
+        except discord.NotFound:
+            continue
+        if count == 5:
+            embed.add_field(name="...", value=f"+{len(res) - count}개", inline=False)
+            break
+        embed.add_field(name=str(lvl) + f": {msg.author}",
+                        value=f"[바로가기]({msg.jump_url})\n업보트 수: {y[1]}",
+                        inline=False)
+        count += 1
+        lvl += 1
+    await ctx.send(embed=embed)
+
+
 @bot.event
 async def on_message(message):
     channel_id = message.channel.id
@@ -52,10 +86,11 @@ async def on_message(message):
     channel_list = [int(x) for x in channel_list]
     if channel_id not in channel_list:
         return await bot.process_commands(message)
-    if message.attachments == [] or message.attachments is None or str(message.attachments) == "[]" or len(message.attachments) == 0:
+    if message.attachments == [] or message.attachments is None or str(message.attachments) == "[]" or len(
+            message.attachments) == 0:
         return await bot.process_commands(message)
     await message.add_reaction("🔼")
-    await hochanic_db.insert_table("daily", is_int=True, id=str(message.id))
+    await hochanic_db.insert_table("daily", is_int=True, id=str(message.id), text_channel=str(message.channel.id))
     await bot.process_commands(message)
 
 

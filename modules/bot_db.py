@@ -36,6 +36,16 @@ class HoChanicDB:
         await self.db.execute(f'CREATE TABLE {table_name}({column_sets})')
         await self.db.commit()
 
+    async def run_sql(self, sql: str):
+        await self.db.execute(sql)
+        await self.db.commit()
+
+    async def res_sql(self, sql: str):
+        cursor = await self.db.execute(sql)
+        rows = await cursor.fetchall()
+        await cursor.close()
+        return rows
+
     async def get_table(self, table_name):
         cursor = await self.db.execute(f'SELECT * FROM {table_name}')
         rows = await cursor.fetchall()
