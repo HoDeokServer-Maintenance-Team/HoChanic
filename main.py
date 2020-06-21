@@ -54,6 +54,7 @@ async def reset_daily_db():
 @bot.event
 async def on_ready():
     print("Bot Ready.")
+    await bot.change_presence(activity=discord.Game((await hochanic_db.get_from_table("bot_settings", "key", "presence"))[0][1]))
 
 
 @bot.command(name="확인")
