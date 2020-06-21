@@ -1,6 +1,7 @@
 import discord
 import asyncio
 import nest_asyncio
+import datetime
 from discord.ext import commands
 from modules import bot_db
 
@@ -11,16 +12,48 @@ loop = asyncio.get_event_loop()
 hochanic_db = bot_db.HoChanicDB("database.db")
 
 
+async def reset_daily_db():
+    await bot.wait_for("ready")
+    while True:
+        guild = bot.get_guild(int((await hochanic_db.get_from_table("bot_settings", "key", "default_guild"))[0][1]))
+        upvote_channel = guild.get_channel(int((await hochanic_db.get_from_table("bot_settings", "key", "upvote_channel"))[0][1]))
+        current_time = datetime.datetime.now()
+        if current_time.hour == 0:
+            res = await hochanic_db.res_sql("SELECT * FROM daily ORDER BY count DESC")
+            embed = discord.Embed(title="업보트 랭크 | Upvote Rank", color=discord.Colour.from_rgb(225, 225, 225))
+            lvl = 1
+            count = 0
+            for y in res:
+                if y[1] == 0:
+                    continue
+                try:
+                    msg = await (guild.get_channel(int(y[2]))).fetch_message(int(y[0]))
+                    if msg is None:
+                        continue
+                except discord.NotFound:
+                    continue
+                if count == 5:
+                    embed.add_field(name="...", value=f"+{len(res) - count}개", inline=False)
+                    break
+                embed.add_field(name=str(lvl) + f": {msg.author}",
+                                value=f"[바로가기 | Message Link]({msg.jump_url})\n업보트 수 | Upvote Count: {y[1]}",
+                                inline=False)
+                count += 1
+                lvl += 1
+            await upvote_channel.send(embed=embed)
+            await hochanic_db.run_sql(f'DROP TABLE IF EXISTS daily')
+            await hochanic_db.run_sql("""CREATE TABLE "daily" (
+                    "id"    INTEGER NOT NULL,
+                    "count"    INTEGER NOT NULL DEFAULT 0,
+                    "text_channel"    INTEGER NOT NULL,
+                    PRIMARY KEY("id")
+                )""")
+        await asyncio.sleep(60)
+
+
 @bot.event
 async def on_ready():
     print("Bot Ready.")
-    await hochanic_db.run_sql(f'DROP TABLE IF EXISTS daily')
-    await hochanic_db.run_sql("""CREATE TABLE "daily" (
-    "id"    INTEGER NOT NULL,
-    "count"    INTEGER NOT NULL DEFAULT 0,
-    "text_channel"    INTEGER NOT NULL,
-    PRIMARY KEY("id")
-)""")
 
 
 @bot.command(name="확인")
@@ -55,7 +88,7 @@ async def _add_new_screenshot_channel(ctx, channel: discord.TextChannel):
 @bot.command(name="업보트")
 async def _rank(ctx):
     res = await hochanic_db.res_sql("SELECT * FROM daily ORDER BY count DESC")
-    embed = discord.Embed(title="업보트", color=discord.Colour.from_rgb(225, 225, 225))
+    embed = discord.Embed(title="업보트 랭크 | Upvote Rank", color=discord.Colour.from_rgb(225, 225, 225))
     embed.set_footer(text=ctx.author, icon_url=ctx.author.avatar_url)
     lvl = 1
     count = 0
@@ -72,7 +105,7 @@ async def _rank(ctx):
             embed.add_field(name="...", value=f"+{len(res) - count}개", inline=False)
             break
         embed.add_field(name=str(lvl) + f": {msg.author}",
-                        value=f"[바로가기]({msg.jump_url})\n업보트 수: {y[1]}",
+                        value=f"[바로가기 | Message Link]({msg.jump_url})\n업보트 수 | Upvote Count: {y[1]}",
                         inline=False)
         count += 1
         lvl += 1
@@ -126,4 +159,5 @@ async def on_raw_reaction_remove(payload):
     await hochanic_db.update_db("daily", "count", str(curr_count - 1), "id", str(message_id), is_int=True)
 
 
+loop.create_task(reset_daily_db())
 bot.run(loop.run_until_complete(hochanic_db.get_from_table("bot_settings", "key", "token"))[0][1])
