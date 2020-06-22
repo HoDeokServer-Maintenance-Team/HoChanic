@@ -15,12 +15,14 @@ hochanic_db = bot_db.HoChanicDB("database.db")
 async def reset_daily_db():
     await bot.wait_for("ready")
     while True:
-        guild = bot.get_guild(int((await hochanic_db.get_from_table("bot_settings", "key", "default_guild"))[0][1]))
+        guild = bot.get_guild(518791611048525852)
         upvote_channel = guild.get_channel(int((await hochanic_db.get_from_table("bot_settings", "key", "upvote_channel"))[0][1]))
         current_time = datetime.datetime.now()
-        if current_time.hour == 0:
+        if current_time.hour == 0 and current_time.minute == 0:
             res = await hochanic_db.res_sql("SELECT * FROM daily ORDER BY count DESC")
+            current_time = current_time.strftime('%Y-%m-%d %H:%M:%S')
             embed = discord.Embed(title="업보트 랭크 | Upvote Rank", color=discord.Colour.from_rgb(225, 225, 225))
+            embed.set_footer(text=current_time)
             lvl = 1
             count = 0
             for y in res:
@@ -33,13 +35,15 @@ async def reset_daily_db():
                 except discord.NotFound:
                     continue
                 if count == 5:
-                    embed.add_field(name="...", value=f"+{len(res) - count}개", inline=False)
+                    embed.add_field(name="...", value=f"+{len(res) - count}", inline=False)
                     break
                 embed.add_field(name=str(lvl) + f": {msg.author}",
                                 value=f"[바로가기 | Message Link]({msg.jump_url})\n업보트 수 | Upvote Count: {y[1]}",
                                 inline=False)
                 count += 1
                 lvl += 1
+            if count is 0:
+                embed.add_field(name="없음 | Empty", value="업보트 없음 | No upvote.")
             await upvote_channel.send(embed=embed)
             await hochanic_db.run_sql(f'DROP TABLE IF EXISTS daily')
             await hochanic_db.run_sql("""CREATE TABLE "daily" (
@@ -49,6 +53,18 @@ async def reset_daily_db():
                     PRIMARY KEY("id")
                 )""")
         await asyncio.sleep(60)
+
+
+async def get_hall_of_fame(msg: discord.Message):
+    current_time = datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S')
+    guild = bot.get_guild(518791611048525852)
+    hall_of_fame_channel = guild.get_channel(724423310573699072)
+    img_url = [a.url for a in msg.attachments]
+    embed = discord.Embed(title="5+ Upvote", description=f"[바로가기 | Message Link]({msg.jump_url})")
+    embed.set_author(name=msg.author.display_name + f" ({msg.author})", icon_url=msg.author.avatar_url)
+    embed.set_footer(text=current_time)
+    embed.set_image(url=img_url[0])
+    await hall_of_fame_channel.send(embed=embed)
 
 
 @bot.event
@@ -88,11 +104,12 @@ async def _add_new_screenshot_channel(ctx, channel: discord.TextChannel):
     await ctx.send(f"{channel.mention} 추가 완료")
 
 
-@bot.command(name="업보트")
+@bot.command(name="업보트", aliases=["upvote", "rank", "랭크"])
 async def _rank(ctx):
+    current_time = datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S')
     res = await hochanic_db.res_sql("SELECT * FROM daily ORDER BY count DESC")
     embed = discord.Embed(title="업보트 랭크 | Upvote Rank", color=discord.Colour.from_rgb(225, 225, 225))
-    embed.set_footer(text=ctx.author, icon_url=ctx.author.avatar_url)
+    embed.set_footer(text=current_time)
     lvl = 1
     count = 0
     for y in res:
@@ -105,14 +122,21 @@ async def _rank(ctx):
         except discord.NotFound:
             continue
         if count == 5:
-            embed.add_field(name="...", value=f"+{len(res) - count}개", inline=False)
+            embed.add_field(name="...", value=f"+{len(res) - count}", inline=False)
             break
         embed.add_field(name=str(lvl) + f": {msg.author}",
                         value=f"[바로가기 | Message Link]({msg.jump_url})\n업보트 수 | Upvote Count: {y[1]}",
                         inline=False)
         count += 1
         lvl += 1
+    if count is 0:
+        embed.add_field(name="없음 | Empty", value="업보트 없음 | No upvote.")
     await ctx.send(embed=embed)
+
+
+@bot.command(name="수동명정")
+async def _manual_hof(ctx, msg: discord.Message):
+    await get_hall_of_fame(msg)
 
 
 @bot.event
@@ -137,6 +161,8 @@ async def on_raw_reaction_add(payload):
     channel_id = payload.channel_id
     message_id = payload.message_id
     emoji = payload.emoji
+    guild = bot.get_guild(518791611048525852)
+    msg = await (guild.get_channel(channel_id)).fetch_message(message_id)
     if not str(emoji) == "🔼" or channel_id not in channel_list or payload.user_id == 641260499924811797:
         return
     try:
@@ -144,6 +170,8 @@ async def on_raw_reaction_add(payload):
     except IndexError:
         return
     await hochanic_db.update_db("daily", "count", str(curr_count + 1), "id", str(message_id), is_int=True)
+    if curr_count + 1 >= 5:
+        await get_hall_of_fame(msg)
 
 
 @bot.event
