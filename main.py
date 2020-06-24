@@ -63,7 +63,10 @@ async def get_hall_of_fame(msg: discord.Message):
     embed = discord.Embed(title="5+ Upvote", description=f"[바로가기 | Message Link]({msg.jump_url})")
     embed.set_author(name=msg.author.display_name + f" ({msg.author})", icon_url=msg.author.avatar_url)
     embed.set_footer(text=current_time)
-    embed.set_image(url=img_url[0])
+    if len(img_url) != 0:
+        embed.set_image(url=img_url[0])
+    if msg.content is not None:
+        embed.add_field(name="메시지 내용 | Message Content", value=msg.content)
     await hall_of_fame_channel.send(embed=embed)
 
 
@@ -168,7 +171,8 @@ async def on_raw_reaction_add(payload):
     try:
         curr_count = int((await hochanic_db.get_from_table("daily", "id", message_id, is_int=True))[0][1])
     except IndexError:
-        return
+        await hochanic_db.insert_table("daily", is_int=True, id=str(message_id), text_channel=str(channel_id))
+        curr_count = int((await hochanic_db.get_from_table("daily", "id", message_id, is_int=True))[0][1])
     await hochanic_db.update_db("daily", "count", str(curr_count + 1), "id", str(message_id), is_int=True)
     if curr_count + 1 >= 5:
         await get_hall_of_fame(msg)
