@@ -84,7 +84,6 @@ async def on_ready():
 @bot.command(name="확인")
 async def _check_ko(ctx):
     tgt_role = ctx.guild.get_role(723438324777353226)
-    await ctx.message.delete()
     if tgt_role in ctx.author.roles:
         return await ctx.send(f"{ctx.author.mention} ❌ 이미 역할을 받으셨습니다.", delete_after=5)
     await ctx.author.add_roles(tgt_role)
@@ -94,7 +93,6 @@ async def _check_ko(ctx):
 @bot.command(name="confirm", aliases=["check"])
 async def _check_en(ctx):
     tgt_role = ctx.guild.get_role(721002110883201184)
-    await ctx.message.delete()
     if tgt_role in ctx.author.roles:
         return await ctx.send(f"{ctx.author.mention} ❌ You already got the role.", delete_after=5)
     await ctx.author.add_roles(tgt_role)
@@ -149,6 +147,9 @@ async def _manual_hof(ctx, msg: discord.Message):
 
 @bot.event
 async def on_message(message):
+    to_prohibit = bot.get_channel(721001176413241424)
+    if message.channel == to_prohibit:
+        await message.delete()
     channel_id = message.channel.id
     channel_list = ((await hochanic_db.get_from_table("bot_settings", "key", "screenshot_channel"))[0][1]).split(", ")
     channel_list = [int(x) for x in channel_list]
