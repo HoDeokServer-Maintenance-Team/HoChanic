@@ -56,6 +56,10 @@ async def reset_daily_db():
 
 
 async def get_hall_of_fame(msg: discord.Message):
+    posted = await hochanic_db.get_table("posted")
+    posted = [x[0] for x in posted]
+    if msg.id in posted:
+        return
     current_time = datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S')
     guild = bot.get_guild(518791611048525852)
     hall_of_fame_channel = guild.get_channel(724423310573699072)
@@ -68,6 +72,7 @@ async def get_hall_of_fame(msg: discord.Message):
     if bool(msg.content) is not False:
         embed.add_field(name="메시지 내용 | Message Content", value=msg.content)
     await hall_of_fame_channel.send(embed=embed)
+    await hochanic_db.insert_table("posted", is_int=True, msg_id=str(msg.id))
 
 
 @bot.event
