@@ -147,6 +147,8 @@ async def _manual_hof(ctx, msg: discord.Message):
 
 @bot.event
 async def on_message(message):
+    if message.author.bot:
+        return
     to_prohibit = bot.get_channel(721001176413241424)
     if message.channel == to_prohibit:
         await message.delete()
