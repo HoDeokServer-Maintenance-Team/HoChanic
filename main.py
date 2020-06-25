@@ -65,7 +65,7 @@ async def get_hall_of_fame(msg: discord.Message):
     embed.set_footer(text=current_time)
     if len(img_url) != 0:
         embed.set_image(url=img_url[0])
-    if msg.content is not None:
+    if bool(msg.content) is not False:
         embed.add_field(name="메시지 내용 | Message Content", value=msg.content)
     await hall_of_fame_channel.send(embed=embed)
 
