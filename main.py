@@ -21,7 +21,7 @@ async def reset_daily_db():
         if current_time.hour == 0 and current_time.minute == 0:
             res = await hochanic_db.res_sql("SELECT * FROM daily ORDER BY count DESC")
             current_time = current_time.strftime('%Y-%m-%d %H:%M:%S')
-            embed = discord.Embed(title="업보트 랭크 | Upvote Rank", color=discord.Colour.from_rgb(225, 225, 225))
+            embed = discord.Embed(title="업보트 랭크", color=discord.Colour.from_rgb(225, 225, 225))
             embed.set_footer(text=current_time)
             lvl = 1
             count = 0
@@ -38,12 +38,12 @@ async def reset_daily_db():
                     embed.add_field(name="...", value=f"+{len(res) - count}", inline=False)
                     break
                 embed.add_field(name=str(lvl) + f": {msg.author}",
-                                value=f"[바로가기 | Message Link]({msg.jump_url})\n업보트 수 | Upvote Count: {y[1]}",
+                                value=f"[바로가기]({msg.jump_url})\n업보트 수: {y[1]}",
                                 inline=False)
                 count += 1
                 lvl += 1
             if count is 0:
-                embed.add_field(name="없음 | Empty", value="업보트 없음 | No upvote.")
+                embed.add_field(name="없음", value="업보트 없음")
             await upvote_channel.send(embed=embed)
             await hochanic_db.run_sql(f'DROP TABLE IF EXISTS daily')
             await hochanic_db.run_sql("""CREATE TABLE "daily" (
@@ -64,13 +64,13 @@ async def get_hall_of_fame(msg: discord.Message):
     guild = bot.get_guild(518791611048525852)
     hall_of_fame_channel = guild.get_channel(724423310573699072)
     img_url = [a.url for a in msg.attachments]
-    embed = discord.Embed(title="5+ Upvote", description=f"[바로가기 | Message Link]({msg.jump_url})")
+    embed = discord.Embed(title="5+ 업보트", description=f"[바로가기]({msg.jump_url})")
     embed.set_author(name=msg.author.display_name + f" ({msg.author})", icon_url=msg.author.avatar_url)
     embed.set_footer(text=current_time)
     if len(img_url) != 0:
         embed.set_image(url=img_url[0])
     if bool(msg.content) is not False:
-        embed.add_field(name="메시지 내용 | Message Content", value=msg.content)
+        embed.add_field(name="메시지 내용", value=msg.content)
     await hall_of_fame_channel.send(embed=embed)
     await hochanic_db.insert_table("posted", is_int=True, msg_id=str(msg.id))
 
@@ -114,7 +114,7 @@ async def _add_new_screenshot_channel(ctx, channel: discord.TextChannel):
 async def _rank(ctx):
     current_time = datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S')
     res = await hochanic_db.res_sql("SELECT * FROM daily ORDER BY count DESC")
-    embed = discord.Embed(title="업보트 랭크 | Upvote Rank", color=discord.Colour.from_rgb(225, 225, 225))
+    embed = discord.Embed(title="업보트 랭크", color=discord.Colour.from_rgb(225, 225, 225))
     embed.set_footer(text=current_time)
     lvl = 1
     count = 0
@@ -131,12 +131,12 @@ async def _rank(ctx):
             embed.add_field(name="...", value=f"+{len(res) - count}", inline=False)
             break
         embed.add_field(name=str(lvl) + f": {msg.author}",
-                        value=f"[바로가기 | Message Link]({msg.jump_url})\n업보트 수 | Upvote Count: {y[1]}",
+                        value=f"[바로가기]({msg.jump_url})\n업보트 수: {y[1]}",
                         inline=False)
         count += 1
         lvl += 1
     if count is 0:
-        embed.add_field(name="없음 | Empty", value="업보트 없음 | No upvote.")
+        embed.add_field(name="없음", value="업보트 없음")
     await ctx.send(embed=embed)
 
 
@@ -150,7 +150,8 @@ async def on_message(message):
     if message.author.bot:
         return
     to_prohibit = bot.get_channel(721001176413241424)
-    if message.channel == to_prohibit:
+    protected = [278170182227066880, 330286426044235776, 292275669008646154, 288302173912170497]
+    if message.channel == to_prohibit and message.author.id not in protected:
         await message.delete()
     channel_id = message.channel.id
     channel_list = ((await hochanic_db.get_from_table("bot_settings", "key", "screenshot_channel"))[0][1]).split(", ")
