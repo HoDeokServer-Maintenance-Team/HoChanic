@@ -161,7 +161,10 @@ async def on_message(message):
     if message.attachments == [] or message.attachments is None or str(message.attachments) == "[]" or len(
             message.attachments) == 0:
         return await bot.process_commands(message)
-    await message.add_reaction("🔼")
+    emoji = bot.get_emoji(733227223670063176)
+    emoji2 = bot.get_emoji(733227206133678160)
+    await message.add_reaction(emoji)
+    await message.add_reaction(emoji2)
     await hochanic_db.insert_table("daily", is_int=True, id=str(message.id), text_channel=str(message.channel.id))
     await bot.process_commands(message)
 
@@ -175,7 +178,7 @@ async def on_raw_reaction_add(payload):
     emoji = payload.emoji
     guild = bot.get_guild(518791611048525852)
     msg = await (guild.get_channel(channel_id)).fetch_message(message_id)
-    if not str(emoji) == "🔼" or channel_id not in channel_list or payload.user_id == 641260499924811797:
+    if emoji.id != 733227223670063176 or channel_id not in channel_list or payload.user_id == 641260499924811797:
         return
     try:
         curr_count = int((await hochanic_db.get_from_table("daily", "id", message_id, is_int=True))[0][1])
@@ -194,7 +197,7 @@ async def on_raw_reaction_remove(payload):
     channel_id = payload.channel_id
     message_id = payload.message_id
     emoji = payload.emoji
-    if not str(emoji) == "🔼" or channel_id not in channel_list or payload.user_id == 641260499924811797:
+    if emoji.id != 733227223670063176 or channel_id not in channel_list or payload.user_id == 641260499924811797:
         return
     try:
         curr_count = int((await hochanic_db.get_from_table("daily", "id", message_id, is_int=True))[0][1])
