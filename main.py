@@ -162,9 +162,9 @@ async def on_message(message):
             message.attachments) == 0:
         return await bot.process_commands(message)
     emoji = bot.get_emoji(733227223670063176)
-    emoji2 = bot.get_emoji(733227206133678160)
+    #emoji2 = bot.get_emoji(733227206133678160)
     await message.add_reaction(emoji)
-    await message.add_reaction(emoji2)
+    #await message.add_reaction(emoji2)
     await hochanic_db.insert_table("daily", is_int=True, id=str(message.id), text_channel=str(message.channel.id))
     await bot.process_commands(message)
 
