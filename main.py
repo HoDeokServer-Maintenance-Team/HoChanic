@@ -206,5 +206,11 @@ async def on_raw_reaction_remove(payload):
     await hochanic_db.update_db("daily", "count", str(curr_count - 1), "id", str(message_id), is_int=True)
 
 
+@bot.event
+async def on_member_join(member):
+    tgt_roles = [member.guild.get_role(723438324777353226), member.guild.get_role(737999344950575204)]
+    await member.add_roles(*tgt_roles)
+
+
 loop.create_task(reset_daily_db())
 bot.run(loop.run_until_complete(hochanic_db.get_from_table("bot_settings", "key", "token"))[0][1])
