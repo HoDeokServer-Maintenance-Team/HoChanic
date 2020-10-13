@@ -186,7 +186,7 @@ async def on_raw_reaction_add(payload):
         await hochanic_db.insert_table("daily", is_int=True, id=str(message_id), text_channel=str(channel_id))
         curr_count = int((await hochanic_db.get_from_table("daily", "id", message_id, is_int=True))[0][1])
     await hochanic_db.update_db("daily", "count", str(curr_count + 1), "id", str(message_id), is_int=True)
-    if curr_count + 1 >= 5:
+    if curr_count + 1 >= 3:
         await get_hall_of_fame(msg)
 
 
